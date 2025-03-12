@@ -28,7 +28,12 @@ def make_tcp_request(host: str, port: int) -> None:
 
     # send & receive data
     with sock:
-        sock.sendall(b"Hi from client!")
+        http_get_message = """
+GET / HTTP/1.1
+Host: yeatee
+Accept-Language: en
+"""
+        sock.sendall(bytes(http_get_message))
         
         if received := sock.recv(1024):
             print(received.decode())

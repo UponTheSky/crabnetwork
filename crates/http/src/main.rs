@@ -36,11 +36,10 @@ fn handle_tcp_stream(mut accepted: TcpStream) {
                     panic!("failed to shutdown the socket {:?}", accepted.as_fd())
                 });
             } else {
-                // echo server
-                println!(
-                    "{}",
-                    String::from_utf8(buf.clone()).expect("failed to convert byte to string")
-                );
+                let recv_message =
+                    String::from_utf8(buf.clone()).expect("failed to convert byte to string");
+                println!("{}", &recv_message);
+
                 accepted.write(&buf).unwrap_or_else(|_| {
                     panic!(
                         "failed to send the message from the socket {:?}",
@@ -53,6 +52,26 @@ fn handle_tcp_stream(mut accepted: TcpStream) {
             println!("{}", error);
         }
     }
+}
+
+enum RequestType {
+    GET,
+}
+
+struct Request {
+    request_type: RequestType,
+    endpoint: String,
+}
+
+fn parse_http_message(message: String) -> Result<Request, String> {
+    let lines: Vec<&str> = message.lines().collect();
+    let error = Err("invalid http request format".into());
+
+    if lines.len() < 3 {
+        return error;
+    }
+
+    todo!("use regex to parse the get request");
 }
 
 fn main() {
