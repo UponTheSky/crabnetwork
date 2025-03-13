@@ -7,6 +7,8 @@ use std::{
     time::Duration,
 };
 
+use regex::Regex;
+
 fn handle_tcp_stream(mut accepted: TcpStream) {
     accepted
         .set_read_timeout(Some(Duration::from_secs(10)))
@@ -40,6 +42,11 @@ fn handle_tcp_stream(mut accepted: TcpStream) {
                     String::from_utf8(buf.clone()).expect("failed to convert byte to string");
                 println!("{}", &recv_message);
 
+                let request = parse_http_message(recv_message).unwrap();
+
+                dbg!(request.endpoint);
+                dbg!(request.request_type);
+
                 accepted.write(&buf).unwrap_or_else(|_| {
                     panic!(
                         "failed to send the message from the socket {:?}",
@@ -54,6 +61,7 @@ fn handle_tcp_stream(mut accepted: TcpStream) {
     }
 }
 
+#[derive(Debug)]
 enum RequestType {
     GET,
 }
@@ -71,7 +79,36 @@ fn parse_http_message(message: String) -> Result<Request, String> {
         return error;
     }
 
-    todo!("use regex to parse the get request");
+    let type_check_regex = Regex::new(r"(GET) (\/|(\/(?=[a-z])[a-z0-9]+)+\/?(\?(?=[a-z])[a-z0-9]+=\w+(&(?=[a-z])[a-z0-9]+=\w+)*)?) HTTP\/1\.1").unwrap();
+
+    // might required later
+    // let host_regex = Regex::new(r"Host: ((?=[a-z])[a-z0-9]+\.((?=[a-z])[a-z0-9]+\.)*[a-z]+)");
+    // let language_regex = Regex::new(r"Accept-Language: ([a-z]{2})");
+
+    match type_check_regex.captures(lines[0]) {
+        Some(captured) => {
+            let (_, matched): (&str, [&str; 2]) = captured.extract();
+
+            if matched.len() != 2 {
+                return error;
+            }
+
+            let request_type = match matched[0] {
+                "GET" => Some(RequestType::GET),
+                _ => None,
+            };
+
+            if request_type.is_none() {
+                return error;
+            }
+
+            Ok(Request {
+                request_type: request_type.unwrap(),
+                endpoint: String::from(matched[1]),
+            })
+        }
+        None => error,
+    }
 }
 
 fn main() {
