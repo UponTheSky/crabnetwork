@@ -7,8 +7,6 @@ use std::{
     time::Duration,
 };
 
-use regex::Regex;
-
 fn handle_tcp_stream(mut accepted: TcpStream) {
     accepted
         .set_read_timeout(Some(Duration::from_secs(10)))
@@ -79,36 +77,27 @@ fn parse_http_message(message: String) -> Result<Request, String> {
         return error;
     }
 
-    let type_check_regex = Regex::new(r"(GET) (\/|(\/(?=[a-z])[a-z0-9]+)+\/?(\?(?=[a-z])[a-z0-9]+=\w+(&(?=[a-z])[a-z0-9]+=\w+)*)?) HTTP\/1\.1").unwrap();
+    // For strictness, we need to parse the given http request text according to
+    // a list of rules. But here we're trying to simplify that process
+    // and focusing on learning the materials
+    let request_line: Vec<&str> = lines[0].split(" ").collect();
 
-    // might required later
-    // let host_regex = Regex::new(r"Host: ((?=[a-z])[a-z0-9]+\.((?=[a-z])[a-z0-9]+\.)*[a-z]+)");
-    // let language_regex = Regex::new(r"Accept-Language: ([a-z]{2})");
-
-    match type_check_regex.captures(lines[0]) {
-        Some(captured) => {
-            let (_, matched): (&str, [&str; 2]) = captured.extract();
-
-            if matched.len() != 2 {
-                return error;
-            }
-
-            let request_type = match matched[0] {
-                "GET" => Some(RequestType::GET),
-                _ => None,
-            };
-
-            if request_type.is_none() {
-                return error;
-            }
-
-            Ok(Request {
-                request_type: request_type.unwrap(),
-                endpoint: String::from(matched[1]),
-            })
-        }
-        None => error,
+    if request_line.len() != 3 {
+        return error;
     }
+
+    let request_type = match request_line[0] {
+        "GET" => Some(RequestType::GET),
+        _ => None,
+    }
+    .unwrap();
+
+    let endpoint = request_line[1];
+
+    Ok(Request {
+        request_type,
+        endpoint: endpoint.into(),
+    })
 }
 
 fn main() {
