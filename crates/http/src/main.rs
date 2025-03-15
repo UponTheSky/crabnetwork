@@ -1,6 +1,8 @@
+use std::fmt::Display;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::os::fd::AsFd;
+use std::str::Bytes;
 use std::thread;
 use std::{
     net::{self, TcpListener},
@@ -42,10 +44,14 @@ fn handle_tcp_stream(mut accepted: TcpStream) {
 
                 let request = parse_http_message(recv_message).unwrap();
 
-                dbg!(request.endpoint);
-                dbg!(request.request_type);
+                let response = Response {
+                    protocol_version: request.protocol_version,
+                    status_code: Status::OK200(String::from("OK")),
+                };
 
-                accepted.write(&buf).unwrap_or_else(|_| {
+                dbg!(&response);
+
+                accepted.write(&response.encode()).unwrap_or_else(|_| {
                     panic!(
                         "failed to send the message from the socket {:?}",
                         accepted.as_fd()
@@ -60,13 +66,56 @@ fn handle_tcp_stream(mut accepted: TcpStream) {
 }
 
 #[derive(Debug)]
-enum RequestType {
+enum HttpMethod {
     GET,
 }
 
+#[derive(Debug)]
+enum ProtocolVersion {
+    HTTP11,
+}
+
+impl Display for ProtocolVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProtocolVersion::HTTP11 => f.write_str("Http/1.1"),
+        }
+    }
+}
+
+#[derive(Debug)]
+enum Status {
+    OK200(String),
+}
+
 struct Request {
-    request_type: RequestType,
-    endpoint: String,
+    method: HttpMethod,
+    path: String,
+    protocol_version: ProtocolVersion,
+}
+
+#[derive(Debug)]
+struct Response {
+    protocol_version: ProtocolVersion,
+    status_code: Status,
+}
+
+impl Response {
+    fn encode(self) -> Vec<u8> {
+        let (status_code, message) = match self.status_code {
+            Status::OK200(message) => (200, message),
+            _ => (400, "bad request".into()),
+        };
+
+        let mock_body = "This is a mock response to your GET request!";
+
+        let encode_str = format!(
+            "{} {} {} \n\n {}",
+            self.protocol_version, status_code, message, mock_body
+        );
+
+        encode_str.into_bytes()
+    }
 }
 
 fn parse_http_message(message: String) -> Result<Request, String> {
@@ -87,16 +136,22 @@ fn parse_http_message(message: String) -> Result<Request, String> {
     }
 
     let request_type = match request_line[0] {
-        "GET" => Some(RequestType::GET),
+        "GET" => Some(HttpMethod::GET),
         _ => None,
     }
     .unwrap();
 
     let endpoint = request_line[1];
+    let version = match request_line[2] {
+        "HTTP/1.1" => Some(ProtocolVersion::HTTP11),
+        _ => None,
+    }
+    .unwrap();
 
     Ok(Request {
-        request_type,
-        endpoint: endpoint.into(),
+        method: request_type,
+        path: endpoint.into(),
+        protocol_version: version,
     })
 }
 
