@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+pub(crate) mod handler;
 pub(crate) mod request;
 pub(crate) mod response;
 

@@ -1,12 +1,11 @@
-use std::fmt::Display;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::net::{self, TcpListener};
 use std::os::fd::AsFd;
+use std::sync::Arc;
 use std::thread;
 
-use crate::http::request::Request;
-use crate::http::{request, response, HttpMethod, ProtocolVersion, Status};
+use crate::http::handler::HttpHandler;
 
 pub struct Config {
     host: String,
@@ -21,11 +20,15 @@ impl Config {
 
 pub struct Server {
     config: Config,
+    http_handler: Arc<HttpHandler>,
 }
 
 impl Server {
-    pub fn new(config: Config) -> Self {
-        Self { config }
+    pub fn new(config: Config, http_handler: HttpHandler) -> Self {
+        Self {
+            config,
+            http_handler: Arc::new(http_handler),
+        }
     }
 
     pub fn run(&self) {
@@ -34,11 +37,13 @@ impl Server {
 
         // accept loop
         for stream in listener.incoming() {
+            let http_handler = Arc::clone(&self.http_handler);
+
             match stream {
                 Ok(accepted) => {
                     // make a multi-thread for the accepted stream(socket)
                     thread::spawn(move || {
-                        handle_tcp_stream(accepted);
+                        Self::handle_tcp_stream(accepted, http_handler);
                     });
                 }
                 Err(error) => {
@@ -47,79 +52,33 @@ impl Server {
             };
         }
     }
-}
 
-fn handle_tcp_stream(mut accepted: TcpStream) {
-    let mut buf = vec![0; 1024];
+    fn handle_tcp_stream(mut accepted: TcpStream, http_handler: Arc<HttpHandler>) {
+        let mut buf = vec![0; 1024];
 
-    match accepted.read(&mut buf) {
-        Ok(len) => {
-            if len == 0 {
-                // EOF
-                accepted.shutdown(net::Shutdown::Both).unwrap_or_else(|_| {
-                    panic!("failed to shutdown the socket {:?}", accepted.as_fd())
-                });
-            } else {
-                let recv_message =
-                    String::from_utf8(buf.clone()).expect("failed to convert byte to string");
-                println!("{}", &recv_message);
+        match accepted.read(&mut buf) {
+            Ok(len) => {
+                if len == 0 {
+                    // EOF
+                    accepted.shutdown(net::Shutdown::Both).unwrap_or_else(|_| {
+                        panic!("failed to shutdown the socket {:?}", accepted.as_fd())
+                    });
+                } else {
+                    let response = http_handler.handle_request(buf).unwrap_or_else(|error| {
+                        panic!("error: {}", error);
+                    });
 
-                let request = parse_http_message(recv_message).unwrap();
-
-                let response = response::Response {
-                    protocol_version: request.protocol_version,
-                    status_code: Status::OK200(String::from("OK")),
-                };
-
-                dbg!(&response);
-
-                accepted.write(&response.encode()).unwrap_or_else(|_| {
-                    panic!(
-                        "failed to send the message from the socket {:?}",
-                        accepted.as_fd()
-                    )
-                });
+                    accepted.write(&response.encode()).unwrap_or_else(|_| {
+                        panic!(
+                            "failed to send the message from the socket {:?}",
+                            accepted.as_fd()
+                        )
+                    });
+                }
+            }
+            Err(error) => {
+                println!("{}", error);
             }
         }
-        Err(error) => {
-            println!("{}", error);
-        }
     }
-}
-
-fn parse_http_message(message: String) -> Result<Request, String> {
-    let lines: Vec<&str> = message.lines().collect();
-    let error = Err("invalid http request format".into());
-
-    if lines.len() < 3 {
-        return error;
-    }
-
-    // For strictness, we need to parse the given http request text according to
-    // a list of rules. But here we're trying to simplify that process
-    // and focusing on learning the materials
-    let request_line: Vec<&str> = lines[0].split(" ").collect();
-
-    if request_line.len() != 3 {
-        return error;
-    }
-
-    let request_type = match request_line[0] {
-        "GET" => Some(HttpMethod::GET),
-        _ => None,
-    }
-    .unwrap();
-
-    let endpoint = request_line[1];
-    let version = match request_line[2] {
-        "HTTP/1.1" => Some(ProtocolVersion::HTTP11),
-        _ => None,
-    }
-    .unwrap();
-
-    Ok(Request {
-        method: request_type,
-        path: endpoint.into(),
-        protocol_version: version,
-    })
 }
