@@ -1,6 +1,6 @@
-use super::request::Request;
+use super::request::{self, Request};
 use super::response::Response;
-use super::Status;
+use super::{HttpError, Status};
 
 pub struct HttpHandler {}
 
@@ -9,18 +9,17 @@ impl HttpHandler {
         Self {}
     }
 
-    pub fn handle_request(&self, request_byte: Vec<u8>) -> Result<Response, String> {
-        match Request::parse(request_byte) {
-            Ok(req) => {
-                // todo: add logic for various requests
-                dbg!(&req);
+    pub fn handle_request(&self, request_byte: Vec<u8>) -> Response {
+        let req = Request::parse(request_byte);
+        // todo: add logic for various requests
+        dbg!(&req);
 
-                Ok(Response::new(
-                    req.protocol_version,
-                    Status::OK200("Ok".into()),
-                ))
+        match req {
+            Ok(req_ok) => Response::new(req_ok.protocol_version, Status::OK200("Ok".into())),
+            Err(req_error) => {
+                // todo!("put protocol versions and other necessary information into HttpErrror");
+                Response::new(crate::http::ProtocolVersion::HTTP11, req_error.status)
             }
-            Err(error) => Err(error),
         }
     }
 }

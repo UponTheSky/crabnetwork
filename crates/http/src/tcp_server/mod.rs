@@ -64,9 +64,7 @@ impl Server {
                         panic!("failed to shutdown the socket {:?}", accepted.as_fd())
                     });
                 } else {
-                    let response = http_handler.handle_request(buf).unwrap_or_else(|error| {
-                        panic!("error: {}", error);
-                    });
+                    let response = http_handler.handle_request(buf);
 
                     accepted.write(&response.encode()).unwrap_or_else(|_| {
                         panic!(
