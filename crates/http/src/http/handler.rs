@@ -15,10 +15,10 @@ impl HttpHandler {
         dbg!(&req);
 
         match req {
-            Ok(req_ok) => Response::new(req_ok.protocol_version, Status::OK200("Ok".into())),
+            Ok(req_ok) => Response::new(req_ok.protocol, Status::OK200("Ok".into())),
             Err(req_error) => {
                 // todo!("put protocol versions and other necessary information into HttpErrror");
-                Response::new(crate::http::ProtocolVersion::HTTP11, req_error.status)
+                Response::new(crate::http::Protocol::HTTP11, req_error.status)
             }
         }
     }

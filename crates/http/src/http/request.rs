@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use super::{HttpError, HttpMethod, ProtocolVersion, Status};
+use super::{HttpError, HttpMethod, Protocol, Status};
 
 #[derive(Debug)]
 pub struct Request {
     pub method: HttpMethod,
     pub path: String,
-    pub protocol_version: ProtocolVersion,
+    pub protocol: Protocol,
     pub headers: HashMap<String, String>,
     pub body: String,
 }
@@ -47,7 +47,7 @@ impl Request {
 
         let request_line: Vec<&str> = lines[0].split(" ").collect();
 
-        if request_line.len() != 3 {
+        if request_line.len() < 2 {
             return Err(error);
         }
 
@@ -57,8 +57,8 @@ impl Request {
         }?;
 
         let path = request_line[1].to_string();
-        let protocol_version = match request_line[2] {
-            "HTTP/1.1" => Ok(ProtocolVersion::HTTP11),
+        let protocol = match request_line.get(2) {
+            Some(&"HTTP/1.1") => Ok(Protocol::HTTP11),
             _ => Err(error.clone()),
         }?;
 
@@ -95,7 +95,7 @@ impl Request {
         Ok(Self {
             method,
             path,
-            protocol_version,
+            protocol,
             headers,
             body,
         })

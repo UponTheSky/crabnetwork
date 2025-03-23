@@ -10,14 +10,14 @@ pub enum HttpMethod {
 }
 
 #[derive(Debug)]
-pub enum ProtocolVersion {
+pub enum Protocol {
     HTTP11,
 }
 
-impl Display for ProtocolVersion {
+impl Display for Protocol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ProtocolVersion::HTTP11 => f.write_str("Http/1.1"),
+            Protocol::HTTP11 => f.write_str("Http/1.1"),
         }
     }
 }

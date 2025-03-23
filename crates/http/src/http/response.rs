@@ -1,13 +1,13 @@
-use super::{ProtocolVersion, Status};
+use super::{Protocol, Status};
 
 #[derive(Debug)]
 pub struct Response {
-    pub protocol_version: ProtocolVersion,
+    pub protocol_version: Protocol,
     pub status: Status,
 }
 
 impl Response {
-    pub fn new(protocol_version: ProtocolVersion, status: Status) -> Self {
+    pub fn new(protocol_version: Protocol, status: Status) -> Self {
         Self {
             protocol_version,
             status,
