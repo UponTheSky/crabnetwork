@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use regex::Regex;
+
 use super::{HttpError, HttpMethod, Protocol, Status};
 
 #[derive(Debug)]
@@ -11,12 +13,13 @@ pub struct Request {
     pub body: String,
 }
 
-const HEADER_LIST: [&'static str; 5] = [
-    "Host",
-    "User-Agent",
-    "Accept",
-    "Content-Type",
-    "Content-Length",
+const HEADER_LIST: [&'static str; 6] = [
+    "host",
+    "user-agent",
+    "accept",
+    "content-type",
+    "content-length",
+    "cookie",
 ];
 
 impl Request {
@@ -59,6 +62,7 @@ impl Request {
         let path = request_line[1].to_string();
         let protocol = match request_line.get(2) {
             Some(&"HTTP/1.1") => Ok(Protocol::HTTP11),
+            // TODO: check if it is http/2 or above
             _ => Err(error.clone()),
         }?;
 
@@ -70,9 +74,9 @@ impl Request {
             let splitted: Vec<&str> = line.split(" ").collect();
 
             if splitted.len() == 2 && splitted[0].ends_with(":") {
-                let key = splitted[0].trim_end_matches(":");
+                let key = splitted[0].trim_end_matches(":").to_lowercase();
 
-                if HEADER_LIST.contains(&key) {
+                if HEADER_LIST.contains(&key.as_str()) {
                     headers
                         .entry(key.to_string())
                         .or_insert(splitted[1].to_string());
@@ -99,5 +103,35 @@ impl Request {
             headers,
             body,
         })
+    }
+
+    pub fn validate(&self) -> Result<(), HttpError> {
+        // case 1: asterisk form
+        if self.path == "*" && self.method != HttpMethod::OPTIONS {
+            return Err(HttpError::new(Status::BadRequest400(
+                "request target '*' can only be used with OPTIONS method".to_string(),
+            )));
+        }
+
+        // case 2: authority form
+        let authority_syntax = Regex::new(r"(?<host>[a-z0-9\.]+):(?<port>\d+)").unwrap();
+
+        if authority_syntax.is_match(&self.path) && self.method != HttpMethod::CONNECT {
+            return Err(HttpError::new(Status::BadRequest400(
+                "request target in the form <host>:<port> can only be used with CONNECT method"
+                    .to_string(),
+            )));
+        }
+
+        // case 3: for non-empty body
+        if !self.body.is_empty()
+            && !([HttpMethod::PATCH, HttpMethod::POST, HttpMethod::PUT].contains(&self.method))
+        {
+            return Err(HttpError::new(Status::BadRequest400(
+                "only PATCH, POST, and PUT methods can send non-empty body".to_string(),
+            )));
+        }
+
+        Ok(())
     }
 }

@@ -4,9 +4,17 @@ pub(crate) mod handler;
 pub(crate) mod request;
 pub(crate) mod response;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum HttpMethod {
     GET,
+    HEAD,
+    POST,
+    PUT,
+    DELETE,
+    CONNECT,
+    OPTIONS,
+    TRACE,
+    PATCH,
 }
 
 #[derive(Debug)]
