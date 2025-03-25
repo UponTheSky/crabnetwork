@@ -14,11 +14,22 @@ impl HttpHandler {
         // todo: add logic for various requests
         dbg!(&req);
 
+        // todo: add more info for responses
         match req {
-            Ok(req_ok) => Response::new(req_ok.protocol, Status::OK200("Ok".into())),
+            Ok(req_ok) => Response::new(
+                req_ok.protocol,
+                Status::OK200("Ok".into()),
+                HashMap::new(),
+                None,
+            ),
             Err(req_error) => {
                 // todo!("put protocol versions and other necessary information into HttpErrror");
-                Response::new(crate::http::Protocol::HTTP11, req_error.status)
+                Response::new(
+                    crate::http::Protocol::HTTP11,
+                    req_error.status,
+                    HashMap::new(),
+                    None,
+                )
             }
         }
     }
