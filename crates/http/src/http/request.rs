@@ -13,13 +13,17 @@ pub struct Request {
     pub body: String,
 }
 
-const HEADER_LIST: [&'static str; 6] = [
-    "host",
-    "user-agent",
+const HEADER_LIST: [&'static str; 10] = [
     "accept",
-    "content-type",
-    "content-length",
+    "accept-encoding",
+    "accept-language",
     "cookie",
+    "content-length",
+    "content-type",
+    "host",
+    "if-none-match",
+    "pragma",
+    "user-agent",
 ];
 
 impl Request {

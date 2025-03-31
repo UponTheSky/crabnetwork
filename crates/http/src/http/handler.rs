@@ -1,3 +1,7 @@
+use std::collections::HashMap;
+
+use crate::http::response::CacheOptions;
+
 use super::request::{self, Request};
 use super::response::Response;
 use super::{HttpError, Status};
@@ -20,6 +24,7 @@ impl HttpHandler {
                 req_ok.protocol,
                 Status::OK200("Ok".into()),
                 HashMap::new(),
+                CacheOptions::new_default(),
                 None,
             ),
             Err(req_error) => {
@@ -28,6 +33,7 @@ impl HttpHandler {
                     crate::http::Protocol::HTTP11,
                     req_error.status,
                     HashMap::new(),
+                    CacheOptions::new_default(),
                     None,
                 )
             }

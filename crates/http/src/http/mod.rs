@@ -33,6 +33,7 @@ impl Display for Protocol {
 #[derive(Debug, Clone)]
 pub enum Status {
     OK200(String),
+    NotModified304,
     BadRequest400(String),
 }
 
