@@ -66,6 +66,8 @@ impl Server {
                 } else {
                     let response = http_handler.handle_request(buf);
 
+                    dbg!(&response);
+
                     accepted.write(&response.encode()).unwrap_or_else(|_| {
                         panic!(
                             "failed to send the message from the socket {:?}",

@@ -14,15 +14,17 @@ pub struct Response {
     pub body: Vec<u8>,
 }
 
-const HEADER_LIST: [&'static str; 8] = [
+const HEADER_LIST: [&'static str; 10] = [
     "age",
     "cache-control",
     "content-length",
     "content-type",
     "date",
+    "proxy-authenticate",
     "server",
     "transfer-encoding",
     "vary",
+    "www-authenticate",
 ];
 
 #[derive(Debug)]
@@ -151,10 +153,11 @@ impl Response {
             self.protocol, status_code, message, headers
         );
 
-        todo!("learn how to send body");
+        // todo!("learn how to send body");
         // if !self.body.is_empty() {
-        //     encode_str.push_str(body);
         // }
+
+        encode_str.push_str("hi\n");
 
         encode_str.into_bytes()
     }

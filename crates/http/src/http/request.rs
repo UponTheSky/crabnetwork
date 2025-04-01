@@ -13,16 +13,18 @@ pub struct Request {
     pub body: String,
 }
 
-const HEADER_LIST: [&'static str; 10] = [
+const HEADER_LIST: [&'static str; 12] = [
     "accept",
     "accept-encoding",
     "accept-language",
+    "authorization",
     "cookie",
     "content-length",
     "content-type",
     "host",
     "if-none-match",
     "pragma",
+    "proxy-authorization",
     "user-agent",
 ];
 
@@ -100,13 +102,17 @@ impl Request {
             body.push_str(*line);
         }
 
-        Ok(Self {
+        let req = Self {
             method,
             path,
             protocol,
             headers,
             body,
-        })
+        };
+
+        req.validate()?;
+
+        Ok(req)
     }
 
     pub fn validate(&self) -> Result<(), HttpError> {

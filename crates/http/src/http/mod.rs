@@ -35,6 +35,10 @@ pub enum Status {
     OK200(String),
     NotModified304,
     BadRequest400(String),
+    UnAuthorized401(String),
+    Forbidden403(String),
+    NotFound404(String),
+    ProxyAuthenticationRequired407(String),
 }
 
 #[derive(Debug, Clone)]
