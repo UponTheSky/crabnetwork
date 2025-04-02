@@ -13,7 +13,7 @@ pub struct Request {
     pub body: String,
 }
 
-const HEADER_LIST: [&'static str; 12] = [
+const HEADER_LIST: [&'static str; 13] = [
     "accept",
     "accept-encoding",
     "accept-language",
@@ -23,6 +23,7 @@ const HEADER_LIST: [&'static str; 12] = [
     "content-type",
     "host",
     "if-none-match",
+    "location",
     "pragma",
     "proxy-authorization",
     "user-agent",

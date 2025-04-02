@@ -33,7 +33,13 @@ impl Display for Protocol {
 #[derive(Debug, Clone)]
 pub enum Status {
     OK200(String),
+    MultipleChoices300,
+    MovedPermanently301,
+    Found302,
+    SeeOther303,
     NotModified304,
+    TemporaryRedirect307,
+    PermanentRedirect308,
     BadRequest400(String),
     UnAuthorized401(String),
     Forbidden403(String),
