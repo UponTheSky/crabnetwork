@@ -10,7 +10,8 @@ pub struct Response {
     pub protocol: Protocol,
     pub status: Status,
     pub headers: HashMap<String, String>,
-    pub cache_options: CacheOptions,
+    pub cache_options: Option<CacheOptions>,
+    pub cookies: Option<Cookies>,
     pub body: Vec<u8>,
 }
 
@@ -109,9 +110,88 @@ impl CacheOptions {
         let etag_header = format!("ETag: {}", self.etag);
 
         format!(
-            "{}\n{}\n{}\n",
+            "{}\n{}\n{}",
             cache_control_header, last_modified_header, etag_header
         )
+    }
+}
+
+#[derive(Debug)]
+pub struct Cookies {
+    values: HashMap<String, String>,
+    max_age: Option<u32>,
+    secure: bool,
+    http_only: bool,
+    domain: Option<String>,
+    path: Option<String>,
+    same_site: Option<String>,
+}
+
+impl Cookies {
+    pub fn new(
+        values: HashMap<String, String>,
+        max_age: Option<u32>,
+        secure: bool,
+        http_only: bool,
+        domain: Option<String>,
+        path: Option<String>,
+        same_site: Option<String>,
+    ) -> Self {
+        Self {
+            values,
+            max_age,
+            secure,
+            http_only,
+            domain,
+            path,
+            same_site,
+        }
+    }
+
+    pub fn to_set_cookie_header(self) -> String {
+        let mut values = self
+            .values
+            .into_iter()
+            .map(|(key, value)| format!("{}={}", key, value))
+            .collect::<Vec<_>>()
+            .join("; ");
+
+        if let Some(max_age) = self.max_age {
+            values.push_str(format!("; Max-Age={}", max_age).as_str());
+        }
+
+        if self.secure {
+            values.push_str("; Secure");
+        }
+
+        if self.http_only {
+            values.push_str("; HttpOnly");
+        }
+
+        if let Some(domain) = self.domain {
+            values.push_str(format!("; Domain={}", domain).as_str());
+        }
+
+        if let Some(path) = self.path {
+            values.push_str(format!("; Path={}", path).as_str());
+        }
+
+        if let Some(same_site) = self.same_site {
+            if let Some(same_site_value) = match same_site.to_lowercase().as_str() {
+                "strict" => Some("Strict"),
+                "lax" => Some("Lax"),
+                "none" => Some("None"),
+                _ => None,
+            } {
+                values.push_str(format!("; SameSite={}", same_site_value).as_str());
+
+                if same_site_value == "Lax" && !self.secure {
+                    values.push_str("; Secure");
+                }
+            }
+        }
+
+        format!("Set-Cookie: {}", values)
     }
 }
 
@@ -120,13 +200,15 @@ impl Response {
         protocol: Protocol,
         status: Status,
         headers: HashMap<String, String>,
-        cache_options: CacheOptions,
+        cookies: Option<Cookies>,
+        cache_options: Option<CacheOptions>,
         body: Option<Vec<u8>>,
     ) -> Self {
         Self {
             protocol,
             status,
             headers,
+            cookies,
             cache_options,
             body: body.unwrap_or(vec![]),
         }
@@ -146,7 +228,15 @@ impl Response {
                 acc
             });
 
-        headers.push_str(self.cache_options.to_cache_related_header().as_str());
+        if let Some(cache_options) = self.cache_options {
+            headers.push_str(cache_options.to_cache_related_header().as_str());
+            headers.push('\n');
+        }
+
+        if let Some(cookies) = self.cookies {
+            headers.push_str(cookies.to_set_cookie_header().as_str());
+            headers.push('\n');
+        }
 
         let mut encode_str = format!(
             "{} {} {}\n{}\n",

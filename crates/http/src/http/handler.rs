@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::http::response::CacheOptions;
+use crate::http::response::{CacheOptions, Cookies};
 
 use super::request::{self, Request};
 use super::response::Response;
@@ -19,12 +19,30 @@ impl HttpHandler {
         dbg!(&req);
 
         // todo: add more info for responses
+        let mut cookie_values = HashMap::new();
+        cookie_values.insert(
+            "best-movie".to_string(),
+            "how to train your dragon".to_string(),
+        );
+        cookie_values.insert(
+            "the-second-best-movie".to_string(),
+            "hangover trilogy".to_string(),
+        );
         match req {
             Ok(req_ok) => Response::new(
                 req_ok.protocol,
                 Status::OK200("Ok".into()),
                 HashMap::new(),
-                CacheOptions::new_default(),
+                Some(Cookies::new(
+                    cookie_values,
+                    None,
+                    true,
+                    true,
+                    None,
+                    Some("/".to_string()),
+                    None,
+                )),
+                Some(CacheOptions::new_default()),
                 None,
             ),
             Err(req_error) => {
@@ -33,7 +51,8 @@ impl HttpHandler {
                     crate::http::Protocol::HTTP11,
                     req_error.status,
                     HashMap::new(),
-                    CacheOptions::new_default(),
+                    None,
+                    None,
                     None,
                 )
             }
