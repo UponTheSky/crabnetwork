@@ -33,6 +33,8 @@ impl Display for Protocol {
 #[derive(Debug, Clone)]
 pub enum Status {
     OK200(String),
+    NoContent204,
+    PartialContent206,
     MultipleChoices300,
     MovedPermanently301,
     Found302,
@@ -45,6 +47,8 @@ pub enum Status {
     Forbidden403(String),
     NotFound404(String),
     ProxyAuthenticationRequired407(String),
+    PreconditionFailed412,
+    RequestedRangeNotSatisfiable416,
 }
 
 #[derive(Debug, Clone)]

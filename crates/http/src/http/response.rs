@@ -15,7 +15,8 @@ pub struct Response {
     pub body: Vec<u8>,
 }
 
-const HEADER_LIST: [&'static str; 10] = [
+const HEADER_LIST: [&'static str; 11] = [
+    "accept-ranges",
     "age",
     "cache-control",
     "content-length",
