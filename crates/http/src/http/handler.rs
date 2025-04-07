@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::io::BufReader;
+use std::net::TcpStream;
 
 use crate::http::response::{CacheOptions, Cookies};
 
@@ -13,10 +15,10 @@ impl HttpHandler {
         Self {}
     }
 
-    pub fn handle_request(&self, request_byte: Vec<u8>) -> Response {
-        let req = Request::parse(request_byte);
+    pub fn handle_request(&self, request_stream: &TcpStream) -> Response {
         // todo: add logic for various requests
-        dbg!(&req);
+        let request = Request::parse(request_stream);
+        dbg!(&request);
 
         // todo: add more info for responses
         let mut cookie_values = HashMap::new();
@@ -28,11 +30,15 @@ impl HttpHandler {
             "the-second-best-movie".to_string(),
             "hangover trilogy".to_string(),
         );
-        match req {
+
+        let mut common_headers = HashMap::new();
+        common_headers.insert("Content-Type".to_string(), "text/html".to_string());
+
+        match request {
             Ok(req_ok) => Response::new(
                 req_ok.protocol,
                 Status::OK200("Ok".into()),
-                HashMap::new(),
+                common_headers,
                 Some(Cookies::new(
                     cookie_values,
                     None,
@@ -43,7 +49,23 @@ impl HttpHandler {
                     None,
                 )),
                 Some(CacheOptions::new_default()),
-                None,
+                Some(
+                    "\n
+<html>
+    <head>
+        <title>
+            heyya
+        </title>
+    </head>
+    <body>
+        hey this is my own http server written in Rust!
+    </body>
+</html>
+\n
+                "
+                    .as_bytes()
+                    .to_owned(),
+                ),
             ),
             Err(req_error) => {
                 // todo!("put protocol versions and other necessary information into HttpErrror");

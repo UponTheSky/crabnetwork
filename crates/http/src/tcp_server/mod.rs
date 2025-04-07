@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::net::TcpStream;
 use std::net::{self, TcpListener};
 use std::os::fd::AsFd;
@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::thread;
 
 use crate::http::handler::HttpHandler;
+use crate::http::request::Request;
 
 pub struct Config {
     host: String,
@@ -53,32 +54,32 @@ impl Server {
         }
     }
 
-    fn handle_tcp_stream(mut accepted: TcpStream, http_handler: Arc<HttpHandler>) {
-        let mut buf = vec![0; 1024];
+    fn handle_tcp_stream(accepted: TcpStream, http_handler: Arc<HttpHandler>) {
+        let response = http_handler.handle_request(&accepted);
+        dbg!(&response);
 
-        match accepted.read(&mut buf) {
-            Ok(len) => {
-                if len == 0 {
-                    // EOF
-                    accepted.shutdown(net::Shutdown::Both).unwrap_or_else(|_| {
-                        panic!("failed to shutdown the socket {:?}", accepted.as_fd())
-                    });
-                } else {
-                    let response = http_handler.handle_request(buf);
+        // Ok(len) => {
+        //     if len == 0 {
+        //         // EOF
+        //         accepted.shutdown(net::Shutdown::Both).unwrap_or_else(|_| {
+        //             panic!("failed to shutdown the socket {:?}", accepted.as_fd())
+        //         });
+        //     } else {
+        // }
 
-                    dbg!(&response);
+        let mut res_buf = BufWriter::new(&accepted);
 
-                    accepted.write(&response.encode()).unwrap_or_else(|_| {
-                        panic!(
-                            "failed to send the message from the socket {:?}",
-                            accepted.as_fd()
-                        )
-                    });
-                }
-            }
-            Err(error) => {
-                println!("{}", error);
-            }
-        }
+        dbg!(&response);
+
+        res_buf.write_all(&response.encode()).unwrap_or_else(|_| {
+            panic!(
+                "failed to send the message from the socket {:?}",
+                accepted.as_fd()
+            )
+        });
+
+        dbg!(&res_buf);
+
+        res_buf.flush().unwrap();
     }
 }

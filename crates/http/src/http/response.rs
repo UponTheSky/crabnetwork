@@ -248,8 +248,9 @@ impl Response {
         // if !self.body.is_empty() {
         // }
 
-        encode_str.push_str("hi\n");
+        let metadata = encode_str.as_bytes();
+        let body = self.body;
 
-        encode_str.into_bytes()
+        [metadata, &body].concat()
     }
 }

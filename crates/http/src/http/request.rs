@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::prelude::*, io::BufReader, net::TcpStream};
 
 use regex::Regex;
 
@@ -35,26 +35,33 @@ const HEADER_LIST: [&'static str; 18] = [
 ];
 
 impl Request {
-    pub fn parse(message_byte: Vec<u8>) -> Result<Self, HttpError> {
-        let mut message = String::new();
-
-        match String::from_utf8(message_byte) {
-            Ok(msg) => {
-                message = msg;
-            }
-            Err(error) => {
-                return Err(HttpError::new(Status::BadRequest400(format!(
-                    "{}: {}",
-                    "invalid http request form", error
-                ))));
-            }
-        }
-
-        let mut lines: Vec<&str> = message.lines().collect();
+    pub fn parse(request_stream: &TcpStream) -> Result<Self, HttpError> {
+        let request_buf = BufReader::new(request_stream);
 
         let error = HttpError {
             status: Status::BadRequest400("invalid http request format".to_string()),
         };
+
+        let mut lines = vec![];
+
+        for line in request_buf.lines() {
+            match line {
+                Ok(l) => {
+                    if !l.is_empty() {
+                        lines.push(l)
+                    } else {
+                        break;
+                    }
+                }
+                Err(err) => {
+                    dbg!(err);
+
+                    return Err(error);
+                }
+            }
+        }
+
+        dbg!("foo");
 
         // For strictness, we need to parse the given http request text according to
         // a list of rules. But here we're trying to simplify that process
@@ -105,7 +112,7 @@ impl Request {
         let mut body = String::new();
 
         while let Some(line) = body_iter.next() {
-            body.push_str(*line);
+            body.push_str(line);
         }
 
         let req = Self {
