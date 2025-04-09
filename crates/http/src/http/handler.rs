@@ -1,12 +1,11 @@
 use std::collections::HashMap;
-use std::io::BufReader;
 use std::net::TcpStream;
 
 use crate::http::response::{CacheOptions, Cookies};
 
-use super::request::{self, Request};
+use super::request::Request;
 use super::response::Response;
-use super::{HttpError, Status};
+use super::Status;
 
 pub struct HttpHandler {}
 
@@ -50,7 +49,7 @@ impl HttpHandler {
                 )),
                 Some(CacheOptions::new_default()),
                 Some(
-                    "\n
+                    "\r\n
 <html>
     <head>
         <title>
@@ -61,7 +60,7 @@ impl HttpHandler {
         hey this is my own http server written in Rust!
     </body>
 </html>
-\n
+\r\n
                 "
                     .as_bytes()
                     .to_owned(),

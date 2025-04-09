@@ -1,6 +1,6 @@
-use std::{collections::HashMap, time::SystemTime};
+use std::collections::HashMap;
 
-use jiff::{fmt::strtime::format, Timestamp};
+use jiff::Timestamp;
 use uuid::Uuid;
 
 use super::{Protocol, Status};
@@ -111,7 +111,7 @@ impl CacheOptions {
         let etag_header = format!("ETag: {}", self.etag);
 
         format!(
-            "{}\n{}\n{}",
+            "{} \r\n{} \r\n{}",
             cache_control_header, last_modified_header, etag_header
         )
     }
@@ -225,28 +225,26 @@ impl Response {
             .headers
             .into_iter()
             .fold(String::new(), |mut acc, (key, value)| {
-                acc.push_str(format!("{}: {}\n", key, value).as_str());
+                acc.push_str(format!("{}: {} \r\n", key, value).as_str());
                 acc
             });
 
         if let Some(cache_options) = self.cache_options {
             headers.push_str(cache_options.to_cache_related_header().as_str());
-            headers.push('\n');
+            headers.push_str(" \r\n");
         }
 
         if let Some(cookies) = self.cookies {
             headers.push_str(cookies.to_set_cookie_header().as_str());
-            headers.push('\n');
+            headers.push_str(" \r\n");
         }
 
-        let mut encode_str = format!(
-            "{} {} {}\n{}\n",
+        let encode_str = format!(
+            "{} {} {} \r\n{}\r\n",
             self.protocol, status_code, message, headers
         );
 
         // todo!("learn how to send body");
-        // if !self.body.is_empty() {
-        // }
 
         let metadata = encode_str.as_bytes();
         let body = self.body;

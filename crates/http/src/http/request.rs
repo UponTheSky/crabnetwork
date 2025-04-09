@@ -61,7 +61,9 @@ impl Request {
             }
         }
 
-        dbg!("foo");
+        if lines.is_empty() {
+            return Err(error);
+        }
 
         // For strictness, we need to parse the given http request text according to
         // a list of rules. But here we're trying to simplify that process
@@ -105,7 +107,7 @@ impl Request {
 
         let mut body_iter = (&mut lines[1..])
             .iter_mut()
-            .skip_while(|line| **line != "\n");
+            .skip_while(|line| **line != "\r\n");
 
         body_iter.next(); // skip the empty line
 
