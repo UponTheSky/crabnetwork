@@ -1,3 +1,5 @@
+mod threadpool;
+
 use std::io::{BufWriter, Write};
 use std::net::TcpListener;
 use std::net::TcpStream;
@@ -6,6 +8,7 @@ use std::sync::Arc;
 use std::thread;
 
 use crate::http::handler::HttpHandler;
+use threadpool::ThreadPool;
 
 pub struct Config {
     host: String,
@@ -35,6 +38,8 @@ impl Server {
         let listener =
             TcpListener::bind(format!("{}:{}", self.config.host, self.config.port)).unwrap(); // create socket, bind to the address, and listen
 
+        let pool = ThreadPool::new(4);
+
         // accept loop
         for stream in listener.incoming() {
             let http_handler = Arc::clone(&self.http_handler);
@@ -42,7 +47,7 @@ impl Server {
             match stream {
                 Ok(accepted) => {
                     // make a multi-thread for the accepted stream(socket)
-                    thread::spawn(move || {
+                    pool.execute(move || {
                         Self::handle_tcp_stream(accepted, http_handler);
                     });
                 }
