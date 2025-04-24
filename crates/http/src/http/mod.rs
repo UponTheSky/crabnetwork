@@ -49,6 +49,7 @@ pub enum Status {
     ProxyAuthenticationRequired407(String),
     PreconditionFailed412,
     RequestedRangeNotSatisfiable416,
+    TCPError,
 }
 
 #[derive(Debug, Clone)]

@@ -61,8 +61,9 @@ impl Request {
             }
         }
 
+        // handle EOF
         if lines.is_empty() {
-            return Err(error);
+            return Err(HttpError::new(Status::TCPError));
         }
 
         // For strictness, we need to parse the given http request text according to

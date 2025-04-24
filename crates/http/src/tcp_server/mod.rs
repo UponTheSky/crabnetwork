@@ -59,14 +59,20 @@ impl Server {
     }
 
     fn handle_tcp_stream(accepted: TcpStream, http_handler: Arc<HttpHandler>) {
-        let response = http_handler.handle_request(&accepted);
-
-        let mut res_buf = BufWriter::new(&accepted);
-        res_buf.write_all(&response.encode()).unwrap_or_else(|_| {
-            panic!(
-                "failed to send the message from the socket {:?}",
-                accepted.as_fd()
-            )
-        });
+        // check if the stream is EOF first
+        match http_handler.handle_request(&accepted) {
+            Ok(response) => {
+                let mut res_buf = BufWriter::new(&accepted);
+                res_buf.write_all(&response.encode()).unwrap_or_else(|_| {
+                    panic!(
+                        "failed to send the message from the socket {:?}",
+                        accepted.as_fd()
+                    )
+                });
+            }
+            Err(tcp_error) => {
+                eprintln!("Incoming tcp request is EOF: {}", tcp_error);
+            }
+        }
     }
 }

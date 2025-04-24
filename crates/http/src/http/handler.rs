@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io;
 use std::net::TcpStream;
 
 use crate::http::response::{CacheOptions, Cookies};
@@ -14,7 +15,7 @@ impl HttpHandler {
         Self {}
     }
 
-    pub fn handle_request(&self, request_stream: &TcpStream) -> Response {
+    pub fn handle_request(&self, request_stream: &TcpStream) -> std::io::Result<Response> {
         // todo: add logic for various requests
         let request = Request::parse(request_stream);
         dbg!(&request);
@@ -34,7 +35,7 @@ impl HttpHandler {
         common_headers.insert("Content-Type".to_string(), "text/html".to_string());
 
         match request {
-            Ok(req_ok) => Response::new(
+            Ok(req_ok) => Ok(Response::new(
                 req_ok.protocol,
                 Status::OK200("Ok".into()),
                 common_headers,
@@ -65,17 +66,24 @@ impl HttpHandler {
                     .as_bytes()
                     .to_owned(),
                 ),
-            ),
+            )),
             Err(req_error) => {
+                match req_error.status {
+                    Status::TCPError => Err(io::Error::new(
+                        io::ErrorKind::UnexpectedEof,
+                        "tcp stream is EOF",
+                    )),
+                    _ => Ok(Response::new(
+                        crate::http::Protocol::HTTP11,
+                        req_error.status,
+                        HashMap::new(),
+                        None,
+                        None,
+                        None,
+                    )),
+                }
+
                 // todo!("put protocol versions and other necessary information into HttpErrror");
-                Response::new(
-                    crate::http::Protocol::HTTP11,
-                    req_error.status,
-                    HashMap::new(),
-                    None,
-                    None,
-                    None,
-                )
             }
         }
     }
